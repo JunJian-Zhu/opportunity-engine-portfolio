@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpportunityHub — Discover &amp; Track Opportunities</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    body { background: #f1f5f9; margin: 0; }
+    .gradient-bg { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%); }
+    .card { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); transition: all 0.2s; }
+    .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.12); transform: translateY(-1px); }
+    .badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 9999px; font-size: 12px; font-weight: 500; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; border: none; }
+    .btn-primary { background: #6366f1; color: white; }
+    .btn-primary:hover { background: #4f46e5; }
+    .btn-secondary { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+    .btn-secondary:hover { background: #e2e8f0; }
+    .btn-danger { background: #fef2f2; color: #dc2626; }
+    .btn-danger:hover { background: #fee2e2; }
+    .input { width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; transition: border-color 0.15s; }
+    .input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+    .tab { padding: 10px 20px; font-size: 14px; font-weight: 500; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+    .tab:hover { color: #6366f1; }
+    .tab-active { color: #6366f1; border-bottom-color: #6366f1; }
+    .tag-input-container { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; border: 1px solid #e2e8f0; border-radius: 8px; min-height: 42px; align-items: center; background: white; }
+    .tag-input-container:focus-within { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+    .tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; background: #eef2ff; color: #4338ca; border-radius: 6px; font-size: 13px; }
+    .tag button { background: none; border: none; cursor: pointer; color: #6366f1; font-size: 14px; padding: 0 2px; }
+    .modal-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 50; }
+    .deadline-urgent { border-left: 4px solid #ef4444; }
+    .deadline-soon { border-left: 4px solid #f59e0b; }
+    .deadline-ok { border-left: 4px solid #10b981; }
+    .deadline-past { border-left: 4px solid #94a3b8; opacity: 0.7; }
+    .pulse { animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .fade-in { animation: fadeIn 0.3s ease-in; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    textarea.input { resize: vertical; min-height: 80px; }
+    select.input { appearance: auto; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback, useMemo, useRef } = React;
+
+// ─── Icons (inline SVG helpers) ───
+const Icon = ({ d, size=20, color="currentColor", ...props }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>{typeof d==='string'?<path d={d}/>:d}</svg>
+);
+const Icons = {
+  search: <Icon d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>,
+  plus: <Icon d={<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>}/>,
+  settings: <Icon d={<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></>}/>,
+  mail: <Icon d={<><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>}/>,
+  calendar: <Icon d={<><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>}/>,
+  grid: <Icon d={<><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></>}/>,
+  sheet: <Icon d={<><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></>}/>,
+  ext: <Icon d={<><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></>}/>,
+  trash: <Icon d={<><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></>}/>,
+  clock: <Icon d={<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>}/>,
+  star: <Icon d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>,
+  check: <Icon d={<><polyline points="20 6 9 17 4 12"/></>}/>,
+  x: <Icon d={<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>}/>,
+  bell: <Icon d={<><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></>}/>,
+  bookmark: <Icon d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>,
+  zap: <Icon d={<><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></>}/>,
+  refresh: <Icon d={<><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></>}/>,
+  filter: <Icon d={<><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></>}/>,
+  edit: <Icon d={<><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></>}/>,
+};
+
+// ─── Utilities ───
+const TYPES = ['Internship','Research','Fellowship','Scholarship','Quant','Discovery','Accelerator','Other'];
+const TYPE_COLORS = {Internship:'#6366f1',Research:'#8b5cf6',Fellowship:'#ec4899',Scholarship:'#10b981',Quant:'#f59e0b',Discovery:'#06b6d4',Accelerator:'#f97316',Other:'#64748b'};
+
+function daysUntil(dateStr) {
+  if(!dateStr) return Infinity;
+  const d = new Date(dateStr); const now = new Date(); now.setHours(0,0,0,0); d.setHours(0,0,0,0);
+  return Math.ceil((d-now)/(1000*60*60*24));
+}
+function deadlineClass(dateStr) {
+  const d = daysUntil(dateStr);
+  if(d < 0) return 'deadline-past'; if(d <= 3) return 'deadline-urgent'; if(d <= 14) return 'deadline-soon'; return 'deadline-ok';
+}
+function deadlineLabel(dateStr) {
+  if(!dateStr) return 'No deadline';
+  const d = daysUntil(dateStr);
+  if(d < 0) return `Expired ${-d}d ago`; if(d === 0) return 'Due today!'; if(d === 1) return 'Due tomorrow'; return `${d} days left`;
+}
+function formatDate(dateStr) { if(!dateStr) return '—'; return new Date(dateStr).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+function generateId() { return Date.now().toString(36)+Math.random().toString(36).substr(2,5); }
+
+// ─── Default Data ───
+const DEFAULT_SETTINGS = {
+  keywords: ['software engineering intern','quant intern','research program','discovery program','fellowship','undergraduate research','REU','trading intern'],
+  types: ['Internship','Research','Fellowship','Scholarship','Quant','Discovery'],
+  sources: ['Handshake','LinkedIn','Google Jobs','Indeed','NSF REU','GitHub Jobs'],
+  email: '',
+  emailFrequency: 'daily',
+  sheetsUrl: '',
+  sheetsApiKey: '',
+  notifications: true,
+};
+
+const SAMPLE_OPPORTUNITIES = [
+  {id:'1',title:'Jane Street Quantitative Trading Intern',company:'Jane Street',type:'Quant',deadline:'2026-03-15',url:'https://janestreet.com/join-jane-street/internships/',location:'New York, NY',description:'Join our trading desk for a summer internship focused on quantitative strategies and market making.',status:'new',dateFound:'2026-02-27',saved:false},
+  {id:'2',title:'Google STEP Internship',company:'Google',type:'Internship',deadline:'2026-03-20',url:'https://careers.google.com',location:'Mountain View, CA',description:'First and second-year computer science students program to explore software engineering at Google.',status:'new',dateFound:'2026-02-27',saved:true},
+  {id:'3',title:'NSF REU — Machine Learning for Climate Science',company:'MIT CSAIL',type:'Research',deadline:'2026-04-01',url:'https://www.nsf.gov/reu',location:'Cambridge, MA',description:'10-week summer research experience in applying ML techniques to climate modeling problems.',status:'new',dateFound:'2026-02-26',saved:false},
+  {id:'4',title:'Rhodes Scholarship 2027',company:'Rhodes Trust',type:'Fellowship',deadline:'2026-10-01',url:'https://www.rhodeshouse.ox.ac.uk',location:'Oxford, UK',description:'Fully-funded postgraduate study at the University of Oxford for outstanding young leaders.',status:'upcoming',dateFound:'2026-02-25',saved:true},
+  {id:'5',title:'Citadel Data Science Discovery Program',company:'Citadel',type:'Discovery',deadline:'2026-03-10',url:'https://www.citadel.com/careers',location:'Chicago, IL',description:'A 1-week immersive program for freshmen and sophomores interested in quantitative finance and data science.',status:'new',dateFound:'2026-02-27',saved:false},
+  {id:'6',title:'Two Sigma Freshman Discovery Program',company:'Two Sigma',type:'Discovery',deadline:'2026-03-05',url:'https://twosigma.com/careers',location:'New York, NY',description:'Introduction to quantitative finance for first-year students. Includes mentorship and project work.',status:'new',dateFound:'2026-02-27',saved:false},
+  {id:'7',title:'Palantir Path Internship',company:'Palantir',type:'Internship',deadline:'2026-04-15',url:'https://palantir.com/careers',location:'Denver, CO',description:'Software engineering internship for students with non-traditional CS backgrounds or early in their studies.',status:'upcoming',dateFound:'2026-02-26',saved:false},
+  {id:'8',title:'Goldwater Scholarship',company:'Goldwater Foundation',type:'Scholarship',deadline:'2026-01-25',url:'https://goldwaterscholarship.gov',location:'Nationwide',description:'Prestigious scholarship for sophomores and juniors pursuing research careers in STEM.',status:'past',dateFound:'2026-01-10',saved:true},
+  {id:'9',title:'Y Combinator Summer Batch',company:'Y Combinator',type:'Accelerator',deadline:'2026-04-05',url:'https://ycombinator.com/apply',location:'San Francisco, CA',description:'The leading startup accelerator. $500k investment, 3-month program, unmatched network.',status:'upcoming',dateFound:'2026-02-20',saved:false},
+  {id:'10',title:'Bridgewater Early Career Rotational Program',company:'Bridgewater Associates',type:'Quant',deadline:'2026-03-30',url:'https://bridgewater.com/careers',location:'Westport, CT',description:'Rotational program for recent grads across investment, technology, and client service teams.',status:'new',dateFound:'2026-02-27',saved:false},
+];
+
+// ─── Storage helpers ───
+function loadState(key, fallback) {
+  try { const v = localStorage.getItem('oh_'+key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
+}
+function saveState(key, val) {
+  try { localStorage.setItem('oh_'+key, JSON.stringify(val)); } catch {}
+}
+
+// ─── Components ───
+
+function StatCard({ label, value, sub, color }) {
+  return (
+    <div className="card p-5 flex-1 min-w-0">
+      <div className="text-sm font-medium" style={{color:'#64748b'}}>{label}</div>
+      <div className="text-3xl font-bold mt-1" style={{color: color||'#1e293b'}}>{value}</div>
+      {sub && <div className="text-xs mt-1" style={{color:'#94a3b8'}}>{sub}</div>}
+    </div>
+  );
+}
+
+function TypeBadge({ type }) {
+  const c = TYPE_COLORS[type] || '#64748b';
+  return <span className="badge" style={{background: c+'18', color: c}}>{type}</span>;
+}
+
+function OpportunityCard({ opp, onSave, onEdit, onDelete }) {
+  const dl = deadlineClass(opp.deadline);
+  return (
+    <div className={`card p-5 fade-in ${dl}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <TypeBadge type={opp.type}/>
+            {opp.status==='new' && <span className="badge" style={{background:'#dcfce7',color:'#16a34a'}}>New</span>}
+            {daysUntil(opp.deadline)>=0 && daysUntil(opp.deadline)<=3 && <span className="badge pulse" style={{background:'#fef2f2',color:'#dc2626'}}>Urgent</span>}
+          </div>
+          <h3 className="text-base font-semibold mt-2" style={{color:'#1e293b'}}>{opp.title}</h3>
+          <div className="text-sm mt-1" style={{color:'#64748b'}}>{opp.company} &middot; {opp.location}</div>
+          <p className="text-sm mt-2" style={{color:'#475569',lineHeight:'1.5'}}>{opp.description}</p>
+          <div className="flex items-center gap-4 mt-3 flex-wrap">
+            <span className="text-xs font-medium" style={{color: daysUntil(opp.deadline)<0?'#94a3b8':daysUntil(opp.deadline)<=3?'#dc2626':daysUntil(opp.deadline)<=14?'#f59e0b':'#10b981'}}>
+              {Icons.clock} <span className="ml-1">{deadlineLabel(opp.deadline)}</span>
+            </span>
+            <span className="text-xs" style={{color:'#94a3b8'}}>{Icons.calendar} <span className="ml-1">{formatDate(opp.deadline)}</span></span>
+            <span className="text-xs" style={{color:'#94a3b8'}}>Found {formatDate(opp.dateFound)}</span>
+          </div>
+        </div>
+        <div className="flex flex-col gap-2 flex-shrink-0">
+          {opp.url && <a href={opp.url} target="_blank" rel="noopener" className="btn btn-primary text-xs" style={{padding:'6px 12px'}}>Apply {Icons.ext}</a>}
+          <button onClick={()=>onSave(opp.id)} className={`btn text-xs ${opp.saved?'btn-primary':'btn-secondary'}`} style={{padding:'6px 12px'}}>{opp.saved?'Saved':'Save'} {Icons.bookmark}</button>
+          <button onClick={()=>onEdit(opp)} className="btn btn-secondary text-xs" style={{padding:'6px 12px'}}>{Icons.edit}</button>
+          <button onClick={()=>onDelete(opp.id)} className="btn btn-danger text-xs" style={{padding:'6px 12px'}}>{Icons.trash}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TagInput({ tags, onChange, placeholder }) {
+  const [val, setVal] = useState('');
+  const add = () => { const t=val.trim(); if(t&&!tags.includes(t)){onChange([...tags,t]);} setVal(''); };
+  return (
+    <div className="tag-input-container">
+      {tags.map(t=><span key={t} className="tag">{t}<button onClick={()=>onChange(tags.filter(x=>x!==t))}>&times;</button></span>)}
+      <input value={val} onChange={e=>setVal(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();add();}}} placeholder={tags.length?'':placeholder} style={{border:'none',outline:'none',flex:1,minWidth:120,fontSize:13,padding:'2px 4px'}}/>
+    </div>
+  );
+}
+
+function AddEditModal({ opp, onClose, onSave }) {
+  const [form, setForm] = useState(opp || {title:'',company:'',type:'Internship',deadline:'',url:'',location:'',description:'',status:'new',dateFound:new Date().toISOString().split('T')[0],saved:false});
+  const set = (k,v) => setForm({...form,[k]:v});
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="card p-6 w-full" style={{maxWidth:560}} onClick={e=>e.stopPropagation()}>
+        <h2 className="text-lg font-bold mb-4" style={{color:'#1e293b'}}>{opp?'Edit':'Add'} Opportunity</h2>
+        <div className="space-y-3">
+          <div><label className="text-xs font-medium" style={{color:'#64748b'}}>Title *</label><input className="input mt-1" value={form.title} onChange={e=>set('title',e.target.value)}/></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="text-xs font-medium" style={{color:'#64748b'}}>Company</label><input className="input mt-1" value={form.company} onChange={e=>set('company',e.target.value)}/></div>
+            <div><label className="text-xs font-medium" style={{color:'#64748b'}}>Location</label><input className="input mt-1" value={form.location} onChange={e=>set('location',e.target.value)}/></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="text-xs font-medium" style={{color:'#64748b'}}>Type</label><select className="input mt-1" value={form.type} onChange={e=>set('type',e.target.value)}>{TYPES.map(t=><option key={t}>{t}</option>)}</select></div>
+            <div><label className="text-xs font-medium" style={{color:'#64748b'}}>Deadline</label><input type="date" className="input mt-1" value={form.deadline} onChange={e=>set('deadline',e.target.value)}/></div>
+          </div>
+          <div><label className="text-xs font-medium" style={{color:'#64748b'}}>Apply URL</label><input className="input mt-1" value={form.url} onChange={e=>set('url',e.target.value)} placeholder="https://..."/></div>
+          <div><label className="text-xs font-medium" style={{color:'#64748b'}}>Description</label><textarea className="input mt-1" value={form.description} onChange={e=>set('description',e.target.value)}/></div>
+        </div>
+        <div className="flex justify-end gap-2 mt-5">
+          <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary" onClick={()=>{if(form.title){onSave({...form,id:form.id||generateId()});onClose();}}}>Save</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main App ───
+function App() {
+  const [tab, setTab] = useState('dashboard');
+  const [opps, setOpps] = useState(()=>loadState('opportunities', SAMPLE_OPPORTUNITIES));
+  const [settings, setSettings] = useState(()=>loadState('settings', DEFAULT_SETTINGS));
+  const [search, setSearch] = useState('');
+  const [filterType, setFilterType] = useState('All');
+  const [filterStatus, setFilterStatus] = useState('All');
+  const [showAdd, setShowAdd] = useState(false);
+  const [editOpp, setEditOpp] = useState(null);
+  const [sortBy, setSortBy] = useState('deadline');
+
+  useEffect(()=>saveState('opportunities', opps),[opps]);
+  useEffect(()=>saveState('settings', settings),[settings]);
+
+  const toggleSave = id => setOpps(opps.map(o=>o.id===id?{...o,saved:!o.saved}:o));
+  const deleteOpp = id => setOpps(opps.filter(o=>o.id!==id));
+  const saveOpp = opp => { setOpps(prev=>{ const idx=prev.findIndex(o=>o.id===opp.id); if(idx>=0){const n=[...prev];n[idx]=opp;return n;} return [opp,...prev]; }); };
+
+  const filtered = useMemo(()=>{
+    let list = opps;
+    if(search) { const s=search.toLowerCase(); list=list.filter(o=>(o.title+o.company+o.description+o.type+o.location).toLowerCase().includes(s)); }
+    if(filterType!=='All') list=list.filter(o=>o.type===filterType);
+    if(filterStatus==='Saved') list=list.filter(o=>o.saved);
+    else if(filterStatus==='New') list=list.filter(o=>o.status==='new');
+    else if(filterStatus==='Upcoming') list=list.filter(o=>daysUntil(o.deadline)>14);
+    else if(filterStatus==='Expiring') list=list.filter(o=>daysUntil(o.deadline)>=0&&daysUntil(o.deadline)<=7);
+    if(sortBy==='deadline') list=[...list].sort((a,b)=>(daysUntil(a.deadline)||999)-(daysUntil(b.deadline)||999));
+    else if(sortBy==='newest') list=[...list].sort((a,b)=>new Date(b.dateFound)-new Date(a.dateFound));
+    else if(sortBy==='company') list=[...list].sort((a,b)=>a.company.localeCompare(b.company));
+    return list;
+  },[opps,search,filterType,filterStatus,sortBy]);
+
+  const stats = useMemo(()=>{
+    const today = new Date().toISOString().split('T')[0];
+    return {
+      total: opps.length,
+      newToday: opps.filter(o=>o.dateFound===today).length,
+      expiringSoon: opps.filter(o=>{const d=daysUntil(o.deadline);return d>=0&&d<=7;}).length,
+      saved: opps.filter(o=>o.saved).length,
+    };
+  },[opps]);
+
+  const exportToSheets = () => {
+    const header = 'Title,Company,Type,Deadline,Location,URL,Status,Saved\n';
+    const rows = opps.map(o=>`"${o.title}","${o.company}","${o.type}","${o.deadline}","${o.location}","${o.url}","${o.status}","${o.saved}"`).join('\n');
+    const blob = new Blob([header+rows],{type:'text/csv'});
+    const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='opportunities.csv'; a.click();
+  };
+
+  const exportJSON = () => {
+    const blob = new Blob([JSON.stringify(opps,null,2)],{type:'application/json'});
+    const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='opportunities.json'; a.click();
+  };
+
+  const importJSON = () => {
+    const input = document.createElement('input'); input.type='file'; input.accept='.json';
+    input.onchange = e => {
+      const f=e.target.files[0]; if(!f) return;
+      const r=new FileReader(); r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(Array.isArray(d)){setOpps(d);}}catch{alert('Invalid JSON file');}};r.readAsText(f);
+    };
+    input.click();
+  };
+
+  // ─── RENDER ───
+  return (
+    <div style={{minHeight:'100vh'}}>
+      {/* Header */}
+      <header className="gradient-bg" style={{padding:'0'}}>
+        <div style={{maxWidth:1200,margin:'0 auto',padding:'20px 24px'}}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div style={{background:'rgba(255,255,255,0.2)',borderRadius:10,padding:'8px 10px',display:'flex'}}>{Icons.zap}</div>
+              <div>
+                <h1 className="text-xl font-bold text-white">OpportunityHub</h1>
+                <p className="text-xs" style={{color:'rgba(255,255,255,0.7)'}}>Discover, track &amp; never miss a deadline</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={()=>setShowAdd(true)} className="btn" style={{background:'rgba(255,255,255,0.2)',color:'white',fontSize:13}}>{Icons.plus} Add Opportunity</button>
+              <button onClick={exportToSheets} className="btn" style={{background:'rgba(255,255,255,0.15)',color:'white',fontSize:13}}>{Icons.sheet} Export CSV</button>
+            </div>
+          </div>
+          {/* Tabs */}
+          <div className="flex gap-1 mt-4" style={{borderBottom:'1px solid rgba(255,255,255,0.15)'}}>
+            {[['dashboard','Dashboard',Icons.grid],['browse','Browse',Icons.search],['calendar','Calendar',Icons.calendar],['settings','Settings',Icons.settings],['newsletter','Newsletter',Icons.mail]].map(([k,l,ic])=>(
+              <button key={k} onClick={()=>setTab(k)} className="tab" style={{color: tab===k?'white':'rgba(255,255,255,0.6)', borderBottomColor: tab===k?'white':'transparent', display:'flex', alignItems:'center', gap:6}}>
+                {ic} {l}
+              </button>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      <main style={{maxWidth:1200,margin:'0 auto',padding:'24px'}}>
+        {/* ─── Dashboard ─── */}
+        {tab==='dashboard' && (
+          <div className="fade-in">
+            <div className="flex gap-4 flex-wrap mb-6">
+              <StatCard label="Total Opportunities" value={stats.total} color="#6366f1"/>
+              <StatCard label="New Today" value={stats.newToday} sub="Found in latest scan" color="#10b981"/>
+              <StatCard label="Expiring Soon" value={stats.expiringSoon} sub="Within 7 days" color="#f59e0b"/>
+              <StatCard label="Saved" value={stats.saved} color="#8b5cf6"/>
+            </div>
+
+            <div className="grid gap-6" style={{gridTemplateColumns:'1fr 1fr'}}>
+              {/* Urgent Deadlines */}
+              <div className="card p-5">
+                <h2 className="text-base font-semibold mb-3" style={{color:'#1e293b'}}>Upcoming Deadlines</h2>
+                <div className="space-y-2">
+                  {opps.filter(o=>daysUntil(o.deadline)>=0).sort((a,b)=>daysUntil(a.deadline)-daysUntil(b.deadline)).slice(0,6).map(o=>(
+                    <div key={o.id} className="flex items-center justify-between p-3 rounded-lg" style={{background:'#f8fafc'}}>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate" style={{color:'#1e293b'}}>{o.title}</div>
+                        <div className="text-xs" style={{color:'#94a3b8'}}>{o.company}</div>
+                      </div>
+                      <span className="badge ml-2" style={{background:daysUntil(o.deadline)<=3?'#fef2f2':'#fefce8',color:daysUntil(o.deadline)<=3?'#dc2626':'#ca8a04',whiteSpace:'nowrap',fontSize:11}}>{deadlineLabel(o.deadline)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* New Opportunities */}
+              <div className="card p-5">
+                <h2 className="text-base font-semibold mb-3" style={{color:'#1e293b'}}>Latest Finds</h2>
+                <div className="space-y-2">
+                  {opps.filter(o=>o.status==='new').sort((a,b)=>new Date(b.dateFound)-new Date(a.dateFound)).slice(0,6).map(o=>(
+                    <div key={o.id} className="flex items-center justify-between p-3 rounded-lg" style={{background:'#f8fafc'}}>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate" style={{color:'#1e293b'}}>{o.title}</div>
+                        <div className="text-xs" style={{color:'#94a3b8'}}>{o.company} &middot; <TypeBadge type={o.type}/></div>
+                      </div>
+                      {o.url && <a href={o.url} target="_blank" rel="noopener" className="text-xs font-medium ml-2" style={{color:'#6366f1',whiteSpace:'nowrap'}}>Apply &rarr;</a>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Search Keywords Preview */}
+            <div className="card p-5 mt-6">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-base font-semibold" style={{color:'#1e293b'}}>Your Search Keywords</h2>
+                <button onClick={()=>setTab('settings')} className="btn btn-secondary text-xs">{Icons.settings} Edit</button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {settings.keywords.map(k=><span key={k} className="tag">{k}</span>)}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ─── Browse ─── */}
+        {tab==='browse' && (
+          <div className="fade-in">
+            <div className="card p-4 mb-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex-1 min-w-0" style={{minWidth:200}}>
+                  <input className="input" placeholder="Search opportunities..." value={search} onChange={e=>setSearch(e.target.value)}/>
+                </div>
+                <select className="input" style={{width:'auto'}} value={filterType} onChange={e=>setFilterType(e.target.value)}>
+                  <option>All</option>{TYPES.map(t=><option key={t}>{t}</option>)}
+                </select>
+                <select className="input" style={{width:'auto'}} value={filterStatus} onChange={e=>setFilterStatus(e.target.value)}>
+                  <option value="All">All Status</option><option>New</option><option>Upcoming</option><option>Expiring</option><option>Saved</option>
+                </select>
+                <select className="input" style={{width:'auto'}} value={sortBy} onChange={e=>setSortBy(e.target.value)}>
+                  <option value="deadline">Sort: Deadline</option><option value="newest">Sort: Newest</option><option value="company">Sort: Company</option>
+                </select>
+              </div>
+            </div>
+            <div className="text-sm mb-3" style={{color:'#64748b'}}>Showing {filtered.length} of {opps.length} opportunities</div>
+            <div className="space-y-3">
+              {filtered.map(o=><OpportunityCard key={o.id} opp={o} onSave={toggleSave} onEdit={opp=>{setEditOpp(opp);}} onDelete={deleteOpp}/>)}
+              {filtered.length===0 && <div className="card p-8 text-center" style={{color:'#94a3b8'}}>No opportunities match your filters.</div>}
+            </div>
+          </div>
+        )}
+
+        {/* ─── Calendar ─── */}
+        {tab==='calendar' && (
+          <div className="fade-in">
+            <h2 className="text-lg font-semibold mb-4" style={{color:'#1e293b'}}>Deadline Timeline</h2>
+            <div className="space-y-2">
+              {opps.filter(o=>o.deadline&&daysUntil(o.deadline)>=0).sort((a,b)=>new Date(a.deadline)-new Date(b.deadline)).map(o=>{
+                const d = daysUntil(o.deadline); const pct = Math.max(0,Math.min(100,(1-d/90)*100));
+                return (
+                  <div key={o.id} className={`card p-4 ${deadlineClass(o.deadline)}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2"><TypeBadge type={o.type}/><span className="text-sm font-semibold" style={{color:'#1e293b'}}>{o.title}</span></div>
+                        <div className="text-xs mt-1" style={{color:'#64748b'}}>{o.company} &middot; {formatDate(o.deadline)}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-bold" style={{color:d<=3?'#dc2626':d<=14?'#f59e0b':'#10b981'}}>{deadlineLabel(o.deadline)}</div>
+                      </div>
+                    </div>
+                    <div className="mt-2" style={{background:'#f1f5f9',borderRadius:4,height:6,overflow:'hidden'}}>
+                      <div style={{width:pct+'%',height:'100%',borderRadius:4,background:d<=3?'#ef4444':d<=14?'#f59e0b':'#10b981',transition:'width 0.5s'}}/>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ─── Settings ─── */}
+        {tab==='settings' && (
+          <div className="fade-in" style={{maxWidth:720}}>
+            <h2 className="text-lg font-semibold mb-4" style={{color:'#1e293b'}}>Search &amp; Notification Settings</h2>
+
+            <div className="card p-5 mb-4">
+              <h3 className="text-sm font-semibold mb-2" style={{color:'#1e293b'}}>Search Keywords</h3>
+              <p className="text-xs mb-3" style={{color:'#94a3b8'}}>The engine will search for opportunities matching these keywords. Press Enter to add.</p>
+              <TagInput tags={settings.keywords} onChange={kw=>setSettings({...settings,keywords:kw})} placeholder="e.g. software engineering intern, REU, quant..."/>
+            </div>
+
+            <div className="card p-5 mb-4">
+              <h3 className="text-sm font-semibold mb-2" style={{color:'#1e293b'}}>Opportunity Types</h3>
+              <div className="flex flex-wrap gap-2">
+                {TYPES.map(t=>{
+                  const active = settings.types.includes(t);
+                  return <button key={t} onClick={()=>setSettings({...settings,types:active?settings.types.filter(x=>x!==t):[...settings.types,t]})} className="btn" style={{background:active?TYPE_COLORS[t]+'18':'#f1f5f9',color:active?TYPE_COLORS[t]:'#94a3b8',border:`1px solid ${active?TYPE_COLORS[t]+'40':'#e2e8f0'}`,fontSize:13}}>{active?'✓ ':''}{t}</button>;
+                })}
+              </div>
+            </div>
+
+            <div className="card p-5 mb-4">
+              <h3 className="text-sm font-semibold mb-2" style={{color:'#1e293b'}}>Data Sources</h3>
+              <p className="text-xs mb-3" style={{color:'#94a3b8'}}>Websites and platforms to scan for opportunities.</p>
+              <TagInput tags={settings.sources} onChange={s=>setSettings({...settings,sources:s})} placeholder="e.g. Handshake, LinkedIn, Indeed..."/>
+            </div>
+
+            <div className="card p-5 mb-4">
+              <h3 className="text-sm font-semibold mb-2" style={{color:'#1e293b'}}>Email Newsletter</h3>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium" style={{color:'#64748b'}}>Your Email</label>
+                  <input className="input mt-1" type="email" value={settings.email} onChange={e=>setSettings({...settings,email:e.target.value})} placeholder="you@example.com"/>
+                </div>
+                <div>
+                  <label className="text-xs font-medium" style={{color:'#64748b'}}>Frequency</label>
+                  <select className="input mt-1" value={settings.emailFrequency} onChange={e=>setSettings({...settings,emailFrequency:e.target.value})}>
+                    <option value="daily">Daily</option><option value="weekly">Weekly (Monday)</option><option value="biweekly">Bi-weekly</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="card p-5 mb-4">
+              <h3 className="text-sm font-semibold mb-2" style={{color:'#1e293b'}}>Google Sheets Integration</h3>
+              <p className="text-xs mb-3" style={{color:'#94a3b8'}}>Automatically sync opportunities to a Google Sheet. Paste your Sheet URL and API key below.</p>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium" style={{color:'#64748b'}}>Google Sheet URL</label>
+                  <input className="input mt-1" value={settings.sheetsUrl} onChange={e=>setSettings({...settings,sheetsUrl:e.target.value})} placeholder="https://docs.google.com/spreadsheets/d/..."/>
+                </div>
+                <div>
+                  <label className="text-xs font-medium" style={{color:'#64748b'}}>Service Account Key (JSON path or API key)</label>
+                  <input className="input mt-1" value={settings.sheetsApiKey} onChange={e=>setSettings({...settings,sheetsApiKey:e.target.value})} placeholder="path/to/credentials.json"/>
+                </div>
+              </div>
+            </div>
+
+            <div className="card p-5 mb-4">
+              <h3 className="text-sm font-semibold mb-2" style={{color:'#1e293b'}}>Import / Export Data</h3>
+              <div className="flex gap-2 flex-wrap">
+                <button onClick={exportToSheets} className="btn btn-secondary">{Icons.sheet} Export CSV</button>
+                <button onClick={exportJSON} className="btn btn-secondary">{Icons.sheet} Export JSON</button>
+                <button onClick={importJSON} className="btn btn-secondary">{Icons.refresh} Import JSON</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ─── Newsletter Preview ─── */}
+        {tab==='newsletter' && (
+          <div className="fade-in" style={{maxWidth:720}}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold" style={{color:'#1e293b'}}>Daily Newsletter Preview</h2>
+              <button className="btn btn-primary">{Icons.mail} Send Test Email</button>
+            </div>
+            <div className="card" style={{overflow:'hidden'}}>
+              <div className="gradient-bg p-6 text-center">
+                <h2 className="text-white text-xl font-bold">OpportunityHub Daily Digest</h2>
+                <p style={{color:'rgba(255,255,255,0.7)',fontSize:14}}>{new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}</p>
+              </div>
+              <div className="p-6">
+                {stats.newToday > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-base font-semibold mb-3" style={{color:'#1e293b'}}>New Opportunities Found Today</h3>
+                    {opps.filter(o=>o.dateFound===new Date().toISOString().split('T')[0]).map(o=>(
+                      <div key={o.id} className="p-3 mb-2 rounded-lg" style={{background:'#f8fafc',borderLeft:`3px solid ${TYPE_COLORS[o.type]||'#6366f1'}`}}>
+                        <div className="text-sm font-semibold" style={{color:'#1e293b'}}>{o.title}</div>
+                        <div className="text-xs" style={{color:'#64748b'}}>{o.company} &middot; Deadline: {formatDate(o.deadline)}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="mb-6">
+                  <h3 className="text-base font-semibold mb-3" style={{color:'#dc2626'}}>Deadlines This Week</h3>
+                  {opps.filter(o=>{const d=daysUntil(o.deadline);return d>=0&&d<=7;}).sort((a,b)=>daysUntil(a.deadline)-daysUntil(b.deadline)).map(o=>(
+                    <div key={o.id} className="p-3 mb-2 rounded-lg" style={{background:'#fef2f2',borderLeft:'3px solid #ef4444'}}>
+                      <div className="flex justify-between"><span className="text-sm font-semibold" style={{color:'#1e293b'}}>{o.title}</span><span className="text-xs font-bold" style={{color:'#dc2626'}}>{deadlineLabel(o.deadline)}</span></div>
+                      <div className="text-xs" style={{color:'#64748b'}}>{o.company} &middot; {formatDate(o.deadline)}</div>
+                    </div>
+                  ))}
+                  {opps.filter(o=>{const d=daysUntil(o.deadline);return d>=0&&d<=7;}).length===0 && <p className="text-sm" style={{color:'#94a3b8'}}>No deadlines within the next 7 days.</p>}
+                </div>
+                <div className="text-center pt-4" style={{borderTop:'1px solid #e2e8f0'}}>
+                  <p className="text-xs" style={{color:'#94a3b8'}}>You received this because you subscribed to OpportunityHub daily digest.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Modals */}
+      {(showAdd||editOpp) && <AddEditModal opp={editOpp} onClose={()=>{setShowAdd(false);setEditOpp(null);}} onSave={saveOpp}/>}
+    </div>
+  );
+}
+
+ReactDOM.render(<App/>, document.getElementById('root'));
+</script>
+</body>
+</html>
