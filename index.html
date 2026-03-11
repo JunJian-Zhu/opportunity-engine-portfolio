@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>OpportunityHub — Automated Opportunity Search Engine</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      line-height: 1.6;
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 80px 24px 60px;
+      background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 50%, #0c1220 100%);
+      border-bottom: 1px solid #1e293b;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(99,102,241,0.15);
+      color: #818cf8;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 20px;
+      border: 1px solid rgba(99,102,241,0.25);
+    }
+    .hero h1 {
+      font-size: 42px;
+      font-weight: 800;
+      color: #f8fafc;
+      margin-bottom: 16px;
+      letter-spacing: -0.5px;
+    }
+    .hero h1 span { color: #818cf8; }
+    .hero p {
+      font-size: 18px;
+      color: #94a3b8;
+      max-width: 600px;
+      margin: 0 auto 32px;
+    }
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+    .stat { text-align: center; }
+    .stat-number {
+      font-size: 32px;
+      font-weight: 700;
+      color: #818cf8;
+    }
+    .stat-label {
+      font-size: 13px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    /* Section */
+    .section {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 60px 24px;
+    }
+    .section-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-bottom: 12px;
+    }
+    .section-sub {
+      font-size: 15px;
+      color: #94a3b8;
+      margin-bottom: 36px;
+    }
+
+    /* Architecture */
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+    .arch-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 24px;
+      transition: border-color 0.2s;
+    }
+    .arch-card:hover { border-color: #818cf8; }
+    .arch-icon {
+      width: 40px;
+      height: 40px;
+      background: rgba(99,102,241,0.15);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 14px;
+    }
+    .arch-card h3 {
+      font-size: 16px;
+      color: #f1f5f9;
+      margin-bottom: 8px;
+    }
+    .arch-card p {
+      font-size: 13px;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+
+    /* Pipeline */
+    .pipeline {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 30px 0;
+    }
+    .pipe-step {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 14px 20px;
+      text-align: center;
+      min-width: 130px;
+    }
+    .pipe-step .emoji { font-size: 22px; margin-bottom: 6px; }
+    .pipe-step .label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 500;
+    }
+    .pipe-arrow {
+      color: #475569;
+      font-size: 20px;
+    }
+
+    /* Tech stack */
+    .tech-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .tech-tag {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #cbd5e1;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    /* Features */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .feature {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .feature h3 {
+      font-size: 15px;
+      color: #f1f5f9;
+      margin-bottom: 6px;
+    }
+    .feature p {
+      font-size: 13px;
+      color: #94a3b8;
+    }
+
+    /* Screenshot placeholder */
+    .screenshot-section {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      overflow: hidden;
+      margin: 30px 0;
+    }
+    .screenshot-tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid #334155;
+    }
+    .screenshot-tab {
+      padding: 12px 24px;
+      font-size: 13px;
+      color: #64748b;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    .screenshot-tab.active {
+      color: #818cf8;
+      border-bottom-color: #818cf8;
+    }
+    .screenshot-content {
+      padding: 40px;
+      text-align: center;
+      min-height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .screenshot-content img {
+      max-width: 100%;
+      border-radius: 8px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+    }
+    .screenshot-placeholder {
+      color: #475569;
+      font-size: 14px;
+    }
+
+    /* CTA */
+    .cta {
+      text-align: center;
+      padding: 60px 24px;
+      border-top: 1px solid #1e293b;
+    }
+    .cta h2 {
+      font-size: 24px;
+      color: #f8fafc;
+      margin-bottom: 12px;
+    }
+    .cta p {
+      color: #94a3b8;
+      margin-bottom: 24px;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: #6366f1;
+      color: white;
+      padding: 12px 28px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 15px;
+      transition: background 0.2s;
+    }
+    .cta-btn:hover { background: #4f46e5; }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 30px;
+      color: #475569;
+      font-size: 13px;
+      border-top: 1px solid #1e293b;
+    }
+
+    @media (max-width: 600px) {
+      .hero h1 { font-size: 28px; }
+      .hero-stats { gap: 24px; }
+      .pipe-arrow { display: none; }
+      .pipeline { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-badge">Personal Project — Built March 2026</div>
+    <h1><span>OpportunityHub</span><br/>Automated Opportunity Engine</h1>
+    <p>A full-stack pipeline that discovers, filters, and delivers 400+ internship and program listings daily — so you never miss a deadline.</p>
+    <div class="hero-stats">
+      <div class="stat">
+        <div class="stat-number">444+</div>
+        <div class="stat-label">Opportunities Tracked</div>
+      </div>
+      <div class="stat">
+        <div class="stat-number">40+</div>
+        <div class="stat-label">Companies Monitored</div>
+      </div>
+      <div class="stat">
+        <div class="stat-number">3</div>
+        <div class="stat-label">Data Sources</div>
+      </div>
+      <div class="stat">
+        <div class="stat-number">24/7</div>
+        <div class="stat-label">Automated via CI/CD</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- How It Works -->
+  <div class="section">
+    <h2 class="section-title">How It Works</h2>
+    <p class="section-sub">An automated daily pipeline from data collection to personalized delivery.</p>
+
+    <div class="pipeline">
+      <div class="pipe-step">
+        <div class="emoji">&#x1F50D;</div>
+        <div class="label">Scrape APIs</div>
+      </div>
+      <div class="pipe-arrow">&#x2192;</div>
+      <div class="pipe-step">
+        <div class="emoji">&#x1F9F9;</div>
+        <div class="label">Filter &amp; Classify</div>
+      </div>
+      <div class="pipe-arrow">&#x2192;</div>
+      <div class="pipe-step">
+        <div class="emoji">&#x1F4BE;</div>
+        <div class="label">Deduplicate</div>
+      </div>
+      <div class="pipe-arrow">&#x2192;</div>
+      <div class="pipe-step">
+        <div class="emoji">&#x1F4E7;</div>
+        <div class="label">Email Digest</div>
+      </div>
+      <div class="pipe-arrow">&#x2192;</div>
+      <div class="pipe-step">
+        <div class="emoji">&#x1F4CA;</div>
+        <div class="label">Dashboard</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Architecture -->
+  <div class="section">
+    <h2 class="section-title">Architecture</h2>
+    <p class="section-sub">Three data sources, smart filtering, and zero manual intervention.</p>
+
+    <div class="arch-grid">
+      <div class="arch-card">
+        <div class="arch-icon">&#x1F3E2;</div>
+        <h3>Greenhouse API</h3>
+        <p>Pulls real-time job listings from 15 top companies (Jane Street, Stripe, SpaceX, etc.) via their free public Job Board API. No authentication required.</p>
+      </div>
+      <div class="arch-card">
+        <div class="arch-icon">&#x1F50E;</div>
+        <h3>Targeted Web Search</h3>
+        <p>Uses Serper.dev API with site-specific queries (e.g., <code>site:careers.google.com intern</code>) to find individual job postings on 20+ company career pages.</p>
+      </div>
+      <div class="arch-card">
+        <div class="arch-icon">&#x1F9E0;</div>
+        <h3>Smart Filtering</h3>
+        <p>Multi-pass NLP classification: regex-based type detection (Quant, Intern, Discovery), US-only geolocation, and title/description context matching to exclude full-time roles.</p>
+      </div>
+      <div class="arch-card">
+        <div class="arch-icon">&#x2699;&#xFE0F;</div>
+        <h3>GitHub Actions CI/CD</h3>
+        <p>Cron-scheduled daily pipeline runs scraping, deduplication, newsletter generation, and data commits — fully automated with zero downtime.</p>
+      </div>
+      <div class="arch-card">
+        <div class="arch-icon">&#x1F4E8;</div>
+        <h3>HTML Email Newsletter</h3>
+        <p>Mobile-responsive email digest with deadline urgency indicators, direct apply links, and type-coded badges. Sent via Gmail SMTP with app passwords.</p>
+      </div>
+      <div class="arch-card">
+        <div class="arch-icon">&#x1F4F1;</div>
+        <h3>React Dashboard</h3>
+        <p>Single-page app with search, filtering, calendar view, and preference configuration. Built with React + Tailwind CSS, hosted on GitHub Pages.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screenshots -->
+  <div class="section">
+    <h2 class="section-title">Screenshots</h2>
+    <p class="section-sub">Dashboard and newsletter previews.</p>
+
+    <div class="screenshot-section">
+      <div class="screenshot-tabs">
+        <div class="screenshot-tab active" onclick="showTab(this, 'dashboard')">Dashboard</div>
+        <div class="screenshot-tab" onclick="showTab(this, 'newsletter')">Newsletter</div>
+        <div class="screenshot-tab" onclick="showTab(this, 'mobile')">Mobile</div>
+      </div>
+      <div class="screenshot-content" id="tab-dashboard">
+        <div class="screenshot-placeholder">
+          <p>Add screenshot: <code>screenshots/dashboard.png</code></p>
+        </div>
+      </div>
+      <div class="screenshot-content" id="tab-newsletter" style="display:none;">
+        <div class="screenshot-placeholder">
+          <p>Add screenshot: <code>screenshots/newsletter.png</code></p>
+        </div>
+      </div>
+      <div class="screenshot-content" id="tab-mobile" style="display:none;">
+        <div class="screenshot-placeholder">
+          <p>Add screenshot: <code>screenshots/mobile.png</code></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tech Stack -->
+  <div class="section">
+    <h2 class="section-title">Tech Stack</h2>
+    <div class="tech-grid">
+      <span class="tech-tag">Python 3</span>
+      <span class="tech-tag">React</span>
+      <span class="tech-tag">Tailwind CSS</span>
+      <span class="tech-tag">Greenhouse API</span>
+      <span class="tech-tag">Serper.dev API</span>
+      <span class="tech-tag">Gmail SMTP</span>
+      <span class="tech-tag">GitHub Actions</span>
+      <span class="tech-tag">GitHub Pages</span>
+      <span class="tech-tag">Regex NLP</span>
+      <span class="tech-tag">REST APIs</span>
+      <span class="tech-tag">HTML Email</span>
+      <span class="tech-tag">CI/CD</span>
+    </div>
+  </div>
+
+  <!-- Key Features -->
+  <div class="section">
+    <h2 class="section-title">Key Features</h2>
+    <p class="section-sub">Built to solve a real problem — never miss an internship deadline again.</p>
+
+    <div class="feature-grid">
+      <div class="feature">
+        <h3>Multi-Source Aggregation</h3>
+        <p>Combines Greenhouse Job Board API, Lever API, and Google Search to cover 40+ companies across tech and finance.</p>
+      </div>
+      <div class="feature">
+        <h3>Intern-Only Filtering</h3>
+        <p>Two-pass filter checks titles and descriptions to include only internships, co-ops, datathons, and discovery programs — no full-time noise.</p>
+      </div>
+      <div class="feature">
+        <h3>US-Only Geolocation</h3>
+        <p>Automatically identifies and filters by US states, cities, and common location formats. Rejects non-US postings.</p>
+      </div>
+      <div class="feature">
+        <h3>Deadline Tracking</h3>
+        <p>Regex-based deadline extraction from unstructured text. Urgency-coded alerts in newsletter (red/yellow/green).</p>
+      </div>
+      <div class="feature">
+        <h3>Daily Email Digest</h3>
+        <p>Clean, mobile-responsive HTML newsletter with direct apply links, type badges, and upcoming deadline section prioritized at the top.</p>
+      </div>
+      <div class="feature">
+        <h3>Zero Maintenance</h3>
+        <p>GitHub Actions cron job handles scraping, dedup, email sending, and data commits daily. Fully hands-off after deployment.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta">
+    <h2>Built by James Zhu</h2>
+    <p>Pomona College &middot; CS + Math</p>
+    <a href="mailto:jzii2024@mymail.pomona.edu" class="cta-btn">Get in Touch</a>
+  </div>
+
+  <footer>
+    &copy; 2026 James Zhu. Built with Python, React, and too many API calls.
+  </footer>
+
+  <script>
+    function showTab(el, id) {
+      document.querySelectorAll('.screenshot-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.screenshot-content').forEach(c => c.style.display = 'none');
+      el.classList.add('active');
+      document.getElementById('tab-' + id).style.display = 'flex';
+    }
+  </script>
+</body>
+</html>
